@@ -1,0 +1,147 @@
+Q2)
+
+1)
+
+-- Table: Members
+
+CREATE TABLE Members (
+    MemberID INT PRIMARY KEY,
+    Name VARCHAR(100) NOT NULL,
+    Email VARCHAR(100) UNIQUE NOT NULL,
+    JoinDate DATE DEFAULT CURRENT_DATE,
+    CONSTRAINT chk_email_format CHECK (Email LIKE '%_@_%._%')
+);
+
+-- Table: Books
+
+CREATE TABLE Books (
+    BookID INT PRIMARY KEY,
+    Title VARCHAR(200) NOT NULL,
+    Author VARCHAR(100) NOT NULL,
+    CopiesAvailable INT NOT NULL,
+    CONSTRAINT chk_copies_non_negative CHECK (CopiesAvailable >= 0)
+);
+
+-- Table: IssuedBooks
+
+CREATE TABLE IssuedBooks (
+    IssueID INT PRIMARY KEY,
+    MemberID INT NOT NULL,
+    BookID INT NOT NULL,
+    IssueDate DATE DEFAULT CURRENT_DATE,
+    ReturnDate DATE,
+    CONSTRAINT fk_member FOREIGN KEY (MemberID) REFERENCES Members(MemberID) 
+        ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT fk_book FOREIGN KEY (BookID) REFERENCES Books(BookID) 
+        ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT chk_return_date CHECK (ReturnDate IS NULL OR ReturnDate >= IssueDate)
+);
+
+------------------------------------------------------------------------------------------
+3)
+------------------------------------------------------------------------------------------
+
+a)
+INSERT INTO Members VALUES (1, 'Ali Khan', 'ali@example.com', DEFAULT);
+INSERT INTO Members VALUES (2, 'Sara Ahmed', 'sara@example.com', DEFAULT);
+INSERT INTO Members VALUES (3, 'John Doe', 'john@example.com', DEFAULT);
+
+INSERT INTO Books VALUES (101, 'Database Systems', 'Elmasri', 5);
+INSERT INTO Books VALUES (102, 'Operating Systems', 'Silberschatz', 3);
+INSERT INTO Books VALUES (103, 'Computer Networks', 'Tanenbaum', 2);
+
+b)
+INSERT INTO IssuedBooks (IssueID, MemberID, BookID)
+VALUES (1001, 1, 101);
+
+UPDATE Books
+SET CopiesAvailable = CopiesAvailable - 1
+WHERE BookID = 101;
+
+c)
+SELECT 
+    M.Name AS MemberName,
+    B.Title AS BookTitle,
+    I.IssueDate
+FROM IssuedBooks I
+JOIN Members M ON I.MemberID = M.MemberID
+JOIN Books B ON I.BookID = B.BookID;
+
+
+------------------------------------------------------------------------------------------
+4)
+------------------------------------------------------------------------------------------
+
+a) Key constraint violation:
+-- First insert (assumed successful)
+INSERT INTO Members (MemberID, Name)
+VALUES (101, 'Alice Smith');
+
+-- Second insert with the same MemberID
+INSERT INTO Members (MemberID, Name)
+VALUES (101, 'Bob Johnson');
+
+b) Referntial Integrity Violation:
+INSERT INTO IssuedBooks (IssueID, MemberID, BookID, IssueDate)
+VALUES (5001, 9999, 2001, SYSDATE);
+
+c) Check Constraint Violation:
+INSERT INTO Books (BookID, Title, CopiesAvailable)
+VALUES (3001, 'Database Systems', -5);
+
+------------------------------------------------------------------------------------------
+5)
+------------------------------------------------------------------------------------------
+
+a) Automatically set due dates when books are issued and calculate fines for late returns.
+
+b) Show top borrowed books, active members, and overdue items for better tracking and management.
+
+------------------------------------------------------------------------------------------
+6)
+------------------------------------------------------------------------------------------
+
+a)
+SELECT MemberID, Name
+FROM Members
+WHERE MemberID NOT IN (
+    SELECT MemberID 
+    FROM IssuedBooks
+);
+
+b)
+SELECT BookID, Title, CopiesAvailable
+FROM Books
+WHERE CopiesAvailable = (
+    SELECT MAX(CopiesAvailable) 
+    FROM Books
+);
+
+c)
+SELECT MemberID, Name
+FROM Members
+WHERE MemberID = (
+    SELECT MemberID
+    FROM IssuedBooks
+    GROUP BY MemberID
+    ORDER BY COUNT(*) DESC
+    FETCH FIRST 1 ROWS ONLY
+);
+
+d)
+SELECT BookID, Title
+FROM Books
+WHERE BookID NOT IN (
+    SELECT BookID 
+    FROM IssuedBooks
+);
+
+e)
+SELECT MemberID, Name
+FROM Members
+WHERE MemberID IN (
+    SELECT MemberID
+    FROM IssuedBooks
+    WHERE ReturnDate IS NULL
+      AND IssueDate < SYSDATE - 30
+);

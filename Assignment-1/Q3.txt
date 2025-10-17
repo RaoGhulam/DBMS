@@ -1,0 +1,184 @@
+1)
+CREATE TABLE Patient (
+    Patient_ID   NUMBER(10)       PRIMARY KEY,
+    Name         VARCHAR2(100)    NOT NULL,
+    Gender       VARCHAR2(10)     CHECK (Gender IN ('Male', 'Female')),
+    DOB          DATE             NOT NULL,
+    Email        VARCHAR2(100)    UNIQUE,
+    Phone        VARCHAR2(15),
+    Address      VARCHAR2(255),
+    Username     VARCHAR2(50)     UNIQUE NOT NULL,
+    Password     VARCHAR2(100)    NOT NULL
+);
+
+
+2)
+CREATE TABLE Doctor (
+    Doctor_ID       NUMBER(10)       PRIMARY KEY,
+    Name            VARCHAR2(100)    NOT NULL,
+    Specialization  VARCHAR2(100),
+    Username        VARCHAR2(50)     UNIQUE NOT NULL,
+    Password        VARCHAR2(100)    NOT NULL
+);
+
+
+3)
+CREATE TABLE Appointment (
+    Appointment_ID     NUMBER(10)      PRIMARY KEY,
+    Appointment_Date   DATE            NOT NULL,
+    Appointment_Time   VARCHAR2(10)    NOT NULL,
+    Status             VARCHAR2(20)    CHECK (Status IN ('Scheduled', 'Completed', 'Cancelled')),
+    Clinic_Number      VARCHAR2(20),
+    Patient_ID         NUMBER(10)      NOT NULL,
+    Doctor_ID          NUMBER(10)      NOT NULL,
+    
+    CONSTRAINT fk_patient
+        FOREIGN KEY (Patient_ID)
+        REFERENCES Patient (Patient_ID),
+        
+    CONSTRAINT fk_doctor
+        FOREIGN KEY (Doctor_ID)
+        REFERENCES Doctor (Doctor_ID)
+);
+
+4)
+CREATE TABLE Prescription (
+    Prescription_ID     NUMBER(10)       PRIMARY KEY,
+    Date                DATE            NOT NULL,
+    Doctor_Advice       VARCHAR2(500),
+    Followup_Required   VARCHAR2(3)     CHECK (Followup_Required IN ('Yes', 'No')),
+    Patient_ID          NUMBER(10)      NOT NULL,
+    Doctor_ID           NUMBER(10)      NOT NULL,
+    
+    CONSTRAINT fk_prescription_patient
+        FOREIGN KEY (Patient_ID)
+        REFERENCES Patient (Patient_ID),
+        
+    CONSTRAINT fk_prescription_doctor
+        FOREIGN KEY (Doctor_ID)
+        REFERENCES Doctor (Doctor_ID)
+);
+
+5)
+CREATE TABLE Invoice (
+    Invoice_ID        NUMBER(10)       PRIMARY KEY,
+    Invoice_Date      DATE            NOT NULL,
+    Amount            NUMBER(10,2)    CHECK (Amount >= 0),
+    Payment_Status    VARCHAR2(20)    CHECK (Payment_Status IN ('Paid', 'Pending', 'Cancelled')),
+    Payment_Method    VARCHAR2(20)    CHECK (Payment_Method IN ('Cash', 'Card', 'Online')),
+    Patient_ID        NUMBER(10)      NOT NULL,
+
+    CONSTRAINT fk_invoice_patient
+        FOREIGN KEY (Patient_ID)
+        REFERENCES Patient (Patient_ID)
+);
+
+6)
+CREATE TABLE Tests (
+    Test_ID       NUMBER(10)       PRIMARY KEY,
+    Blood_Test    VARCHAR2(3)      CHECK (Blood_Test IN ('Yes', 'No')),
+    X_Ray         VARCHAR2(3)      CHECK (X_Ray IN ('Yes', 'No')),
+    MRI           VARCHAR2(3)      CHECK (MRI IN ('Yes', 'No')),
+    CT_Scan       VARCHAR2(3)      CHECK (CT_Scan IN ('Yes', 'No'))
+);
+
+-----------------------------------------------------------------------------------------
+
+a) 
+UPDATE Patient
+SET Phone = '9876543210',
+    Email = 'newemail@example.com'
+WHERE Patient_ID = 101;
+
+b)
+UPDATE Invoice
+SET Payment_Status = 'Paid'
+WHERE Payment_Status = 'Unpaid'
+  AND Invoice_ID = 2001;
+
+c)
+DELETE FROM Appointment
+WHERE Status = 'Cancelled';
+
+d)
+DELETE FROM Invoice
+WHERE Invoice_ID = 3001;
+
+e)
+SELECT *
+FROM Appointment
+WHERE Status = 'Booked';
+
+f)
+SELECT *
+FROM Invoice
+WHERE Payment_Status = 'Unpaid';
+
+
+g)
+SELECT *
+FROM Tests
+WHERE Blood_Test = 'Yes';
+
+
+h)
+SELECT *
+FROM Prescription
+WHERE Date = TO_DATE('2025-09-02', 'YYYY-MM-DD');
+
+-----------------------------------------------------------------------------------------
+
+a)
+SELECT p.Patient_ID,
+       p.Name AS Patient_Name,
+       d.Doctor_ID,
+       d.Name AS Doctor_Name,
+       a.Appointment_Date,
+       a.Appointment_Time,
+       a.Status
+FROM Patient p
+JOIN Appointment a 
+    ON p.Patient_ID = a.Patient_ID
+JOIN Doctor d 
+    ON a.Doctor_ID = d.Doctor_ID
+WHERE a.Status = 'Booked';
+
+b)
+SELECT p.Patient_ID,
+       p.Name AS Patient_Name,
+       d.Doctor_ID,
+       d.Name AS Doctor_Name,
+       t.Test_ID,
+       t.Blood_Test,
+       t.X_Ray,
+       t.MRI,
+       t.CT_Scan
+FROM Tests t
+JOIN Patient p 
+    ON t.Patient_ID = p.Patient_ID
+JOIN Doctor d 
+    ON t.Doctor_ID = d.Doctor_ID;
+
+c)
+SELECT p.Patient_ID,
+       p.Name AS Patient_Name,
+       pr.Prescription_ID,
+       pr.Date,
+       pr.Doctor_Advice
+FROM Prescription pr
+JOIN Patient p 
+    ON pr.Patient_ID = p.Patient_ID
+WHERE p.Name = 'Ali Khan';
+
+d)
+SELECT pr.Prescription_ID,
+       pr.Date,
+       pr.Doctor_Advice,
+       p.Name AS Patient_Name,
+       d.Name AS Doctor_Name
+FROM Prescription pr
+JOIN Patient p 
+    ON pr.Patient_ID = p.Patient_ID
+JOIN Doctor d 
+    ON pr.Doctor_ID = d.Doctor_ID
+WHERE pr.Followup_Required = 'Yes';
